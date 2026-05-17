@@ -1,9 +1,9 @@
-import EditorComponent from "@/components/monaco/editor";
+import LogoutButton from "@/components/auth/LogoutButton";
 
 export default function Home() {
   return (
     <main>
-      <EditorComponent></EditorComponent>
+      <LogoutButton></LogoutButton>
     </main>
   );
 }

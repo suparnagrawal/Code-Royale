@@ -8,6 +8,7 @@ export function getSocket() {
   if (!socket) {
     socket = io("http://localhost:3001", {
       autoConnect: false,
+      withCredentials: true,
     });
   }
 

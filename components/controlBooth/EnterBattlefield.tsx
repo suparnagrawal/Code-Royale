@@ -21,8 +21,8 @@ const EnterBattlefield = () => {
       setMatchmakingState("queued");
     };
 
-    const handleBattleStart = () => {
-      router.replace("/battlefield");
+    const handleBattleStart = (data: { problemId: string }) => {
+      router.replace(`/battlefield?problemId=${data.problemId}`);
     };
 
     socket.on("queued", handleQueued);
@@ -38,7 +38,6 @@ const EnterBattlefield = () => {
 
   function handleQueueing() {
     const socket = getSocket();
-    l;
     socket.emit("queue:enter", 1200);
   }
 

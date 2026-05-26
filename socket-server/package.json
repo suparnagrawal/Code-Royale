@@ -12,6 +12,9 @@
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   },
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
   "name": "socket",
   "module": "index.ts",
   "type": "module",

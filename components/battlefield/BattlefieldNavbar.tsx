@@ -5,12 +5,10 @@ import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 
 type BattleNavbarProps = {
-  missionNumber: number;
   missionName: string;
 };
 
 const BattlefieldNavBar = ({
-  missionNumber,
   missionName,
 }: BattleNavbarProps) => {
   return (
@@ -31,7 +29,7 @@ const BattlefieldNavBar = ({
         <Separator orientation="vertical" />
 
         <div className="text-medium font-light truncate max-w-62.5">
-          Mission {missionNumber} - {missionName}
+          {missionName}
         </div>
 
         <Separator orientation="vertical" />

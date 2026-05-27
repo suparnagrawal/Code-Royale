@@ -17,7 +17,7 @@ export default function registerAuthMiddleware(io: Server) {
   return async (socket: Socket, next: (err?: Error) => void) => {
     try {
       const response = await fetch(
-        "http://localhost:3000/api/internal/user-info",
+        `${process.env.NEXT_APP_URL}/api/internal/user-info`,
         {
           headers: {
             cookie: socket.handshake.headers.cookie || "",

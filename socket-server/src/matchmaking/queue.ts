@@ -10,6 +10,9 @@ export function addToQueue(
   socketId: string,
   elo: number,
 ) {
+  // remove existing entry to prevent duplicate queueing
+  removeFromQueue(userId);
+
   queue.push({
     userId,
     socketId,
@@ -21,8 +24,8 @@ export function addToQueue(
   matchPlayers(io);
 }
 
-export function removeFromQueue(socketId: string) {
-  const idx = queue.findIndex((p) => p.socketId === socketId);
+export function removeFromQueue(userId: string) {
+  const idx = queue.findIndex((p) => p.userId === userId);
 
   if (idx !== -1) {
     queue.splice(idx, 1);

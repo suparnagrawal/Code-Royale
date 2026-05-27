@@ -1,0 +1,15 @@
+services:
+  # Code execution server for local development
+  # Requires Python 3, Node.js, and g++ on the host
+  # Run with: docker compose -f judge0/docker-compose.yml up -d
+  #
+  # NOTE: Since Judge0/Piston require root-level container isolation
+  # (cgroups v1 or rootful Docker) which is incompatible with rootless Podman,
+  # we use a lightweight Node.js execution server instead.
+  # Start it with: node judge0/exec-server.mjs
+  #
+  # The server runs on port 2358 and exposes a Judge0-compatible API.
+  # This is for LOCAL DEVELOPMENT ONLY - not production safe.
+  placeholder:
+    image: alpine:latest
+    command: echo "Use 'node judge0/exec-server.mjs' instead"

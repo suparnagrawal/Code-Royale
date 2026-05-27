@@ -1,11 +1,9 @@
-import AttackPanel from "@/components/battlefield/AttackPanel";
-import BattlefieldNavBar from "@/components/battlefield/BattlefieldNavbar";
-import Mission from "@/components/battlefield/Mission";
+import BattlefieldClient from "@/components/battlefield/BattlefieldClient";
 import { db } from "@/src/db/db";
 import { problems } from "@/src/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import React from "react";
+import { LANGUAGE_IDS } from "@/lib/judge0";
 
 type TestCase = {
   input: string;
@@ -36,22 +34,18 @@ const Battlefield = async ({
 
   const problem = result[0];
   const testCases = problem.testCases as TestCase[];
-  const exampleCases = testCases.filter((tc) => tc.isExample);
 
   return (
-    <main className="h-screen flex flex-col">
-      <BattlefieldNavBar
-        missionName={problem.title}
-      />
-      <section className="p-2 flex flex-1 flex-col gap-2">
-        <Mission
-          title={problem.title}
-          description={problem.description}
-          examples={exampleCases}
-        />
-        <AttackPanel />
-      </section>
-    </main>
+    <BattlefieldClient
+      problem={{
+        id: problem.id,
+        title: problem.title,
+        description: problem.description,
+        testCases,
+        starterCode: problem.starterCode as Record<string, string>,
+      }}
+      languageId={LANGUAGE_IDS.cpp}
+    />
   );
 };
 

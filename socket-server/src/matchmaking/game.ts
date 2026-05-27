@@ -1,6 +1,6 @@
 import type { Server } from "socket.io";
 import type { player } from "../types/player";
-import { userToRoom, activeGames } from "./state";
+import { userToRoom, activeGames, userToSocket } from "./state";
 
 export async function createGame(io: Server, p1: player, p2: player) {
   const roomId = crypto.randomUUID();
@@ -34,11 +34,13 @@ export async function createGame(io: Server, p1: player, p2: player) {
     return;
   }
 
-  // Join players to the room
-  io.sockets.sockets.get(p1.socketId)?.join(roomId);
+  // Join players to the room using their latest socket ids
+  const s1Id = userToSocket.get(p1.userId) || p1.socketId;
+  io.in(s1Id).socketsJoin(roomId);
   userToRoom.set(p1.userId, roomId);
 
-  io.sockets.sockets.get(p2.socketId)?.join(roomId);
+  const s2Id = userToSocket.get(p2.userId) || p2.socketId;
+  io.in(s2Id).socketsJoin(roomId);
   userToRoom.set(p2.userId, roomId);
 
   // Store the active game
@@ -53,10 +55,14 @@ export async function createGame(io: Server, p1: player, p2: player) {
   });
 
   // Emit battle start with problem data
-  io.in(roomId).emit("battle:start", {
+  const battleData = {
     roomId,
     problemId: problem.id,
     title: problem.title,
     starterCode: problem.starterCode,
-  });
+  };
+
+  io.to(s1Id).emit("battle:start", battleData);
+  io.to(s2Id).emit("battle:start", battleData);
+  io.in(roomId).emit("battle:start", battleData);
 }

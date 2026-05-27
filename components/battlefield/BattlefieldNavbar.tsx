@@ -6,10 +6,20 @@ import { Separator } from "../ui/separator";
 
 type BattleNavbarProps = {
   missionName: string;
+  onRun?: () => void;
+  onSubmit?: () => void;
+  isRunning?: boolean;
+  isSubmitting?: boolean;
+  isSubmitted?: boolean;
 };
 
 const BattlefieldNavBar = ({
   missionName,
+  onRun,
+  onSubmit,
+  isRunning,
+  isSubmitting,
+  isSubmitted,
 }: BattleNavbarProps) => {
   return (
     <header className="h-14 border-b bg-background flex items-center px-4">
@@ -22,8 +32,13 @@ const BattlefieldNavBar = ({
 
       {/* CENTER */}
       <div className="flex items-center gap-3">
-        <Button variant="secondary" size="default">
-          Run
+        <Button
+          variant="secondary"
+          size="default"
+          onClick={onRun}
+          disabled={isRunning || isSubmitting}
+        >
+          {isRunning ? "Running..." : "Run"}
         </Button>
 
         <Separator orientation="vertical" />
@@ -34,7 +49,17 @@ const BattlefieldNavBar = ({
 
         <Separator orientation="vertical" />
 
-        <Button size="default">Submit</Button>
+        <Button
+          size="default"
+          onClick={onSubmit}
+          disabled={isSubmitting || isSubmitted || isRunning}
+        >
+          {isSubmitted
+            ? "Submitted ✓"
+            : isSubmitting
+              ? "Submitting..."
+              : "Submit"}
+        </Button>
       </div>
 
       {/* RIGHT */}

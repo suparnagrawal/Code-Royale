@@ -70,7 +70,7 @@ export default function registerSocketHandlers(io: Server) {
     socket.on("queue:leave", () => {
       if (!socket.userId) return;
 
-      removeFromQueue(socket.id);
+      removeFromQueue(socket.userId);
     });
 
     // Typesync handling

@@ -11,18 +11,22 @@ const EnterBattlefield = () => {
   const router = useRouter();
 
   const [matchmakingState, setMatchmakingState] = useState("none");
+  const [gameLength, setGameLength] = useState<1 | 3 | 5>(1);
 
   useEffect(() => {
     const socket = getSocket();
 
     const handleQueued = () => {
       console.log("queued event received");
-
       setMatchmakingState("queued");
     };
 
-    const handleBattleStart = (data: { problemId: string }) => {
-      router.replace(`/battlefield?problemId=${data.problemId}`);
+    const handleBattleStart = (data: { problemId?: string, problemIds?: string[] }) => {
+      if (data.problemIds && data.problemIds.length > 0) {
+        router.replace(`/battlefield?problemIds=${data.problemIds.join(",")}`);
+      } else if (data.problemId) {
+        router.replace(`/battlefield?problemIds=${data.problemId}`);
+      }
     };
 
     socket.on("queued", handleQueued);
@@ -38,16 +42,31 @@ const EnterBattlefield = () => {
 
   function handleQueueing() {
     const socket = getSocket();
-    socket.emit("queue:enter", 1200);
+    socket.emit("queue:enter", { elo: 1200, gameLength });
   }
 
   return (
-    <div className="flex flex-auto min-h-screen items-center justify-center">
-      <Button size="lg" onClick={handleQueueing}>
-        <HugeiconsIcon icon={Play} size={12} />
+    <div className="flex flex-auto min-h-screen items-center justify-center flex-col gap-6">
+      <div className="flex items-center gap-4">
+        <label className="text-sm font-medium text-muted-foreground">Mode:</label>
+        <select 
+          className="bg-background border rounded-md px-3 py-2 text-sm"
+          value={gameLength} 
+          onChange={(e) => setGameLength(Number(e.target.value) as 1 | 3 | 5)}
+          disabled={matchmakingState === "queued"}
+        >
+          <option value={1}>Quick (1 Problem)</option>
+          <option value={3}>Classic (3 Problems)</option>
+          <option value={5}>Long (5 Problems)</option>
+        </select>
+      </div>
+
+      <Button size="lg" onClick={handleQueueing} disabled={matchmakingState === "queued"}>
+        <HugeiconsIcon icon={Play} size={12} className="mr-2" />
+        {matchmakingState === "queued" ? "In Queue..." : "Find Match"}
       </Button>
 
-      {matchmakingState === "queued" && <p>queued</p>}
+      {matchmakingState === "queued" && <p className="text-sm text-muted-foreground animate-pulse">Searching for opponent...</p>}
     </div>
   );
 };

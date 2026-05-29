@@ -9,6 +9,7 @@ export function addToQueue(
   userId: string,
   socketId: string,
   elo: number,
+  gameLength: number = 1
 ) {
   // remove existing entry to prevent duplicate queueing
   removeFromQueue(userId);
@@ -17,6 +18,7 @@ export function addToQueue(
     userId,
     socketId,
     elo,
+    gameLength,
   });
 
   io.to(socketId).emit("queued");

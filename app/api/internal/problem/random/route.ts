@@ -13,17 +13,18 @@ export async function GET(request: NextRequest) {
   }
 
   const avgElo = Number(request.nextUrl.searchParams.get("avgElo") ?? "0");
+  const count = Number(request.nextUrl.searchParams.get("count") ?? "1");
 
   const result = await db
     .select()
     .from(problems)
     .where(lte(problems.minElo, avgElo))
     .orderBy(sql`RANDOM()`)
-    .limit(1);
+    .limit(count);
 
   if (result.length === 0) {
     return NextResponse.json({ error: "No problems found" }, { status: 404 });
   }
 
-  return NextResponse.json(result[0]);
+  return NextResponse.json(result);
 }

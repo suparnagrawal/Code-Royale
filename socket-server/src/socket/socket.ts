@@ -8,6 +8,7 @@ import {
   userToRoom,
   userToSocket,
   disconnectTimers,
+  activeGames,
 } from "../matchmaking/state";
 import registerAuthMiddleware from "./middleware/auth";
 
@@ -58,13 +59,17 @@ export default function registerSocketHandlers(io: Server) {
 
     // Queue handling
 
-    socket.on("queue:enter", async () => {
+    socket.on("queue:enter", async (data: any) => {
       if (!socket.userId) return;
 
-      //TODO: fetch elo from db
       const elo = 1000;
+      let gameLength = 1;
+      
+      if (typeof data === "object" && data !== null && data.gameLength) {
+        gameLength = data.gameLength;
+      }
 
-      addToQueue(io, socket.userId, socket.id, elo);
+      addToQueue(io, socket.userId, socket.id, elo, gameLength);
     });
 
     socket.on("queue:leave", () => {
@@ -74,14 +79,45 @@ export default function registerSocketHandlers(io: Server) {
     });
 
     // Typesync handling
-    socket.on("typing:preview", ({ preview }) => {
+    socket.on("typing:preview", ({ preview, problemIndex }) => {
       if (!socket.userId) return;
 
       const roomId = userToRoom.get(socket.userId);
 
       if (!roomId) return;
 
-      socket.to(roomId).emit("opponent:preview", { preview });
+      socket.to(roomId).emit("opponent:preview", { preview, problemIndex });
+    });
+
+    socket.on("opponent:status_update", ({ problemIndex, status, passedCount }) => {
+      if (!socket.userId) return;
+      const roomId = userToRoom.get(socket.userId);
+      if (!roomId) return;
+
+      socket.to(roomId).emit("opponent:status_update", { problemIndex, status, passedCount });
+    });
+
+    // Code submission and win detection
+    socket.on("code:submitted", () => {
+      if (!socket.userId) return;
+      const roomId = userToRoom.get(socket.userId);
+      if (!roomId) return;
+      
+      const game = activeGames.get(roomId);
+      if (!game || game.status === "finished") return;
+      
+      game.status = "finished";
+      game.winnerId = socket.userId;
+      
+      const loserId = game.playerA.userId === socket.userId ? game.playerB.userId : game.playerA.userId;
+      
+      io.to(roomId).emit("battle:result", { winnerId: socket.userId, loserId });
+      
+      setTimeout(() => {
+        activeGames.delete(roomId);
+        userToRoom.delete(game.playerA.userId);
+        userToRoom.delete(game.playerB.userId);
+      }, 5000);
     });
 
     // Unexpected disconnect handling

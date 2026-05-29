@@ -11,39 +11,51 @@ type TestCase = {
   isExample: boolean;
 };
 
+import { inArray } from "drizzle-orm";
+
 const Battlefield = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ problemId?: string }>;
+  searchParams: Promise<{ problemIds?: string; problemId?: string }>;
 }) => {
-  const { problemId } = await searchParams;
+  const { problemIds: rawProblemIds, problemId } = await searchParams;
+  
+  // Fallback for older problemId
+  const idsString = rawProblemIds || problemId;
 
-  if (!problemId) {
+  if (!idsString) {
     redirect("/controlBooth");
   }
 
-  const result = await db
+  const ids = idsString.split(",").map(id => id.trim()).filter(Boolean);
+
+  if (ids.length === 0) {
+    redirect("/controlBooth");
+  }
+
+  const results = await db
     .select()
     .from(problems)
-    .where(eq(problems.id, problemId))
-    .limit(1);
+    .where(inArray(problems.id, ids));
 
-  if (result.length === 0) {
+  if (results.length === 0) {
     redirect("/controlBooth");
   }
 
-  const problem = result[0];
-  const testCases = problem.testCases as TestCase[];
+  // Preserve the order of the IDs as passed in the URL
+  const orderedProblems = ids.map(id => results.find(p => p.id === id)).filter(Boolean) as typeof results;
+
+  const formattedProblems = orderedProblems.map((problem) => ({
+    id: problem.id,
+    title: problem.title,
+    description: problem.description,
+    testCases: problem.testCases as TestCase[],
+    starterCode: problem.starterCode as Record<string, string>,
+  }));
 
   return (
     <BattlefieldClient
-      problem={{
-        id: problem.id,
-        title: problem.title,
-        description: problem.description,
-        testCases,
-        starterCode: problem.starterCode as Record<string, string>,
-      }}
+      problems={formattedProblems}
       languageId={LANGUAGE_IDS.cpp}
     />
   );

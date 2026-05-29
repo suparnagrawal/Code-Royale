@@ -7,15 +7,12 @@ export async function createGame(io: Server, p1: player, p2: player) {
 
   // Fetch a random problem based on average elo
   const avgElo = Math.floor((p1.elo + p2.elo) / 2);
-  let problem: {
-    id: string;
-    title: string;
-    starterCode: Record<string, string>;
-  };
+  const gameLength = p1.gameLength || 1;
+  let problemsArray: any[] = [];
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_APP_URL}/api/internal/problem/random?avgElo=${avgElo}`,
+      `${process.env.NEXT_APP_URL}/api/internal/problem/random?avgElo=${avgElo}&count=${gameLength}`,
       {
         headers: {
           "req-internal-key": process.env.INTERNAL_API_KEY!,
@@ -28,7 +25,7 @@ export async function createGame(io: Server, p1: player, p2: player) {
       return;
     }
 
-    problem = await res.json();
+    problemsArray = await res.json();
   } catch (err) {
     console.error("Error fetching problem:", err);
     return;
@@ -43,23 +40,29 @@ export async function createGame(io: Server, p1: player, p2: player) {
   io.in(s2Id).socketsJoin(roomId);
   userToRoom.set(p2.userId, roomId);
 
+  const problemIds = problemsArray.map(p => p.id);
+
   // Store the active game
   activeGames.set(roomId, {
     roomId,
     playerA: { userId: p1.userId, socketId: p1.socketId, elo: p1.elo },
     playerB: { userId: p2.userId, socketId: p2.socketId, elo: p2.elo },
-    problemId: problem.id,
+    problemId: problemIds[0], // Keep for backward compatibility or change to problemIds
+    problemIds, // Add array of IDs
     language: "cpp",
     status: "active",
     startedAt: new Date(),
-  });
+  } as any);
 
   // Emit battle start with problem data
   const battleData = {
     roomId,
-    problemId: problem.id,
-    title: problem.title,
-    starterCode: problem.starterCode,
+    problemIds,
+    problems: problemsArray.map(p => ({
+      id: p.id,
+      title: p.title,
+      starterCode: p.starterCode
+    })),
   };
 
   io.to(s1Id).emit("battle:start", battleData);

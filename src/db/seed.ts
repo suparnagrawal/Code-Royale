@@ -101,7 +101,7 @@ Output the two indices separated by a space, in ascending order.
     driverCode: {
       python: "",
       javascript: "",
-      cpp: `\n// --- Hidden Driver Code ---\n#include <iostream>\nint main() {\n    vector<int> nums;\n    int n;\n    while (std::cin >> n) {\n        nums.push_back(n);\n    }\n    if (nums.empty()) return 0;\n    int target = nums.back();\n    nums.pop_back();\n    vector<int> res = twoSum(nums, target);\n    for (int i = 0; i < res.size(); i++) {\n        std::cout << res[i] << (i == res.size() - 1 ? "" : " ");\n    }\n    std::cout << "\\n";\n    return 0;\n}`,
+      cpp: `\n// --- Hidden Driver Code ---\n#include <iostream>\n#include <vector>\n#include <algorithm>\nusing namespace std;\nint main() {\n    vector<int> nums;\n    int n;\n    while (std::cin >> n) {\n        nums.push_back(n);\n    }\n    if (nums.empty()) return 0;\n    int target = nums.back();\n    nums.pop_back();\n    vector<int> res = twoSum(nums, target);\n    std::sort(res.begin(), res.end());\n    for (int i = 0; i < res.size(); i++) {\n        std::cout << res[i] << (i == res.size() - 1 ? "" : " ");\n    }\n    std::cout << "\\n";\n    return 0;\n}`,
     },
     minElo: 0,
   },

@@ -16,9 +16,10 @@ type AttackPanelProps = {
   onCodeChange?: (code: string) => void;
   results?: TestCaseResult[];
   isRunning?: boolean;
+  currentProblemIndex: number;
 };
 
-const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning = false }: AttackPanelProps) => {
+const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning = false, currentProblemIndex }: AttackPanelProps) => {
   const socket = getSocket();
 
   const [code, setCode] = useState(initialCode);
@@ -41,6 +42,12 @@ const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning =
       handleEmit.cancel();
     };
   }, [handleEmit]);
+
+  // When the user switches problems, update the editor and broadcast the new view to the opponent
+  useEffect(() => {
+    setCode(initialCode || "");
+    handleEmit(initialCode || "");
+  }, [currentProblemIndex, initialCode, handleEmit]);
 
   useEffect(() => {
     function handlePreview(data: { preview: string }) {

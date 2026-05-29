@@ -23,20 +23,30 @@ const Mission = ({ title, description, examples }: MissionProps) => {
         <CardContent className="flex-1 min-h-0 overflow-y-auto">
           <ReactMarkdown
             components={{
-              h1: ({ node, ...props }) => <h1 className="text-xl font-bold mb-4 text-foreground hidden" {...props} />,
-              h2: ({ node, ...props }) => <h2 className="text-lg font-semibold mt-6 mb-3 text-foreground" {...props} />,
-              h3: ({ node, ...props }) => <h3 className="text-md font-semibold mt-4 mb-2 text-foreground" {...props} />,
-              p: ({ node, ...props }) => <p className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap" {...props} />,
-              ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-4 text-sm text-muted-foreground" {...props} />,
-              li: ({ node, ...props }) => <li className="mb-1" {...props} />,
-              code: ({ node, inline, ...props }: any) => 
+              h1: () => null, // Hidden as problem name is in Navbar
+              h2: ({ node, ...props }) => {
+                if (props.children?.toString() === "Constraints") {
+                  return <h2 className="text-lg font-bold text-primary mt-6 mb-3" {...props} />;
+                }
+                return <p className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-normal" {...props} />;
+              },
+              h3: ({ node, ...props }) => <p className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-normal" {...props} />,
+              p: ({ node, ...props }) => <p className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-normal" {...props} />,
+              ul: ({ node, ...props }) => <ul className="list-none mb-4 text-sm text-muted-foreground font-normal" {...props} />,
+              li: ({ node, ...props }) => <li className="mb-1 font-normal" {...props} />,
+              code: ({ node, inline, ref, ...props }: any) => 
                 inline ? (
-                  <code className="bg-muted px-1.5 py-0.5 rounded-md font-mono text-[13px] text-foreground" {...props} />
+                  <span className="font-normal text-muted-foreground" {...props} />
                 ) : (
-                  <code className="block bg-muted p-3 rounded-md font-mono text-[13px] text-foreground overflow-x-auto" {...props} />
+                  <div className="block mb-4 text-sm text-muted-foreground whitespace-pre-wrap font-normal" {...props} />
                 ),
-              pre: ({ node, ...props }) => <pre className="mb-4" {...props} />,
-              strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
+              pre: ({ node, ref, ...props }: any) => <div className="mb-4 text-sm text-muted-foreground font-normal" {...props} />,
+              strong: ({ node, ...props }) => {
+                 if (props.children?.toString() === "Constraints") {
+                    return <strong className="font-bold text-primary" {...props} />;
+                 }
+                 return <span className="font-normal" {...props} />;
+              },
             }}
           >
             {cleanDescription}

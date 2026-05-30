@@ -9,8 +9,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
-import LoginOrRegister from "@/components/auth/LoginOrRegister";
-
 const fontSans = Geist({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -47,8 +45,7 @@ export default async function RootLayout({
       >
         <main>
           <Toaster />
-
-          {session ? children : <LoginOrRegister />}
+          {children}
         </main>
       </body>
     </html>

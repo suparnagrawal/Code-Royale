@@ -3,6 +3,17 @@
 import React from "react";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
 
 type BattleNavbarProps = {
   problems: { id: string; title: string; testCases: any[] }[];
@@ -11,8 +22,12 @@ type BattleNavbarProps = {
   questionStatus: ("not_attempted" | "0_passed" | "partially_passed" | "fully_passed")[];
   opponentQuestionStatus: ("not_attempted" | "0_passed" | "partially_passed" | "fully_passed")[];
   passedCounts: number[];
+  opponentPassedCounts: number[];
+  opponentCurrentProblemIndex?: number | null;
+  timeLeft?: number;
   onRun?: () => void;
   onSubmit?: () => void;
+  onResign?: () => void;
   isRunning?: boolean;
   isSubmitting?: boolean;
   isSubmitted?: boolean;
@@ -25,8 +40,12 @@ const BattlefieldNavBar = ({
   questionStatus,
   opponentQuestionStatus,
   passedCounts,
+  opponentPassedCounts,
+  opponentCurrentProblemIndex = null,
+  timeLeft = 0,
   onRun,
   onSubmit,
+  onResign,
   isRunning,
   isSubmitting,
   isSubmitted,
@@ -41,35 +60,51 @@ const BattlefieldNavBar = ({
     }
   };
 
-  const getOpponentColor = (status: string) => {
-    switch (status) {
-      case "not_attempted": return "bg-muted";
-      case "0_passed": return "bg-destructive";
-      case "partially_passed": return "bg-yellow-500";
-      case "fully_passed": return "bg-green-500";
-      default: return "bg-muted";
-    }
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
     <header className="h-14 border-b bg-background flex items-center px-4">
       {/* LEFT - Question Navigation */}
-      <div className="flex-1 flex items-center gap-2 overflow-x-auto">
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => window.location.href = "/controlBooth"}>
-          Resign
-        </Button>
-        <Separator orientation="vertical" className="h-6 mx-2" />
+      <div className="flex-1 flex items-center gap-3 overflow-x-auto">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+              Resign
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. Resigning will immediately forfeit the match and decrease your Elo rating.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={onResign} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Resign Match</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <Separator orientation="vertical" className="h-5 my-auto" />
         
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center px-1">
           {problems.map((p, i) => (
             <Button
               key={i}
-              variant={currentProblemIndex === i ? "default" : "secondary"}
+              variant="secondary"
               size="sm"
               onClick={() => setCurrentProblemIndex(i)}
-              className={`w-10 h-8 font-mono text-xs ${currentProblemIndex !== i ? getStatusColor(questionStatus[i]) : ""}`}
+              className={`font-mono transition-all duration-200 ${
+                currentProblemIndex === i 
+                  ? "w-11 h-9 text-sm shadow-md scale-110 border-foreground/30" 
+                  : "w-10 h-8 text-xs hover:scale-105"
+              } ${getStatusColor(questionStatus[i])}`}
             >
-              {i + 1}
+              {questionStatus[i] !== "not_attempted" && currentProblemIndex !== i ? passedCounts[i] : String.fromCharCode(65 + i)}
             </Button>
           ))}
         </div>
@@ -86,13 +121,13 @@ const BattlefieldNavBar = ({
           {isRunning ? "Running..." : "Run"}
         </Button>
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-5 my-auto" />
 
-        <div className="text-sm font-medium truncate max-w-[200px] text-center">
+        <div className="text-sm font-medium truncate max-w-[200px] text-center flex items-center justify-center">
           {problems[currentProblemIndex].title}
         </div>
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-5 my-auto" />
 
         <Button
           size="default"
@@ -109,16 +144,29 @@ const BattlefieldNavBar = ({
       </div>
 
       {/* RIGHT - Opponent Status */}
-      <div className="flex-1 flex justify-end items-center gap-3">
-        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Opponent</span>
-        <div className="flex gap-1.5 items-center bg-muted/50 p-1.5 rounded-full border">
-          {problems.map((_, i) => (
-            <div 
-              key={i} 
-              className={`w-3 h-3 rounded-full shadow-sm transition-colors duration-300 ${getOpponentColor(opponentQuestionStatus[i])}`}
-              title={`Problem ${i + 1}`}
-            />
-          ))}
+      <div className="flex-1 flex justify-end items-center gap-3 overflow-x-auto">
+        <div className="flex gap-2 items-center">
+          {[...problems].reverse().map((_, revI) => {
+            const i = problems.length - 1 - revI;
+            return (
+              <Button
+                key={i}
+                variant="secondary"
+                size="sm"
+                className={`font-mono transition-all duration-200 cursor-default ${
+                  opponentCurrentProblemIndex === i
+                    ? "w-11 h-9 text-sm shadow-md scale-110 border-foreground/30"
+                    : "w-10 h-8 text-xs hover:bg-transparent"
+                } ${getStatusColor(opponentQuestionStatus[i])}`}
+              >
+                {opponentQuestionStatus[i] !== "not_attempted" ? opponentPassedCounts[i] : String.fromCharCode(65 + i)}
+              </Button>
+            );
+          })}
+        </div>
+        <Separator orientation="vertical" className="h-5 my-auto" />
+        <div className="font-mono font-bold text-sm tracking-widest text-primary w-14 text-center">
+          {formatTime(timeLeft)}
         </div>
       </div>
     </header>

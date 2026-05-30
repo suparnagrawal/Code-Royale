@@ -7,7 +7,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
 
-const EnterBattlefield = () => {
+const EnterBattlefield = ({ elo = 1200 }: { elo?: number }) => {
   const router = useRouter();
 
   const [matchmakingState, setMatchmakingState] = useState("none");
@@ -21,28 +21,26 @@ const EnterBattlefield = () => {
       setMatchmakingState("queued");
     };
 
-    const handleBattleStart = (data: { problemId?: string, problemIds?: string[] }) => {
-      if (data.problemIds && data.problemIds.length > 0) {
-        router.replace(`/battlefield?problemIds=${data.problemIds.join(",")}`);
-      } else if (data.problemId) {
-        router.replace(`/battlefield?problemIds=${data.problemId}`);
-      }
+    const handleBattleStart = () => {
+      router.replace(`/battlefield`);
     };
 
     socket.on("queued", handleQueued);
     socket.on("battle:start", handleBattleStart);
+    socket.on("battle:ongoing", handleBattleStart);
 
     socket.connect();
 
     return () => {
       socket.off("queued", handleQueued);
       socket.off("battle:start", handleBattleStart);
+      socket.off("battle:ongoing", handleBattleStart);
     };
   }, [router]);
 
   function handleQueueing() {
     const socket = getSocket();
-    socket.emit("queue:enter", { elo: 1200, gameLength });
+    socket.emit("queue:enter", { elo, gameLength });
   }
 
   return (

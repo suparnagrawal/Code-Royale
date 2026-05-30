@@ -55,7 +55,36 @@ export default function registerSocketHandlers(io: Server) {
     if (existingRoom) {
       socket.to(existingRoom).emit("opponent:reconnected");
       socket.join(existingRoom);
+
+      const game = activeGames.get(existingRoom);
+      if (game && game.status !== "finished") {
+        socket.emit("battle:ongoing", {
+          problemIds: game.problemIds || (game.problemId ? [game.problemId] : []),
+        });
+      }
     }
+
+    // Explicit reconnect check from Battlefield page
+    socket.on("battle:check_reconnect", () => {
+      const roomId = userToRoom.get(userId);
+      if (!roomId) {
+        socket.emit("battle:reconnect_failed");
+        return;
+      }
+      
+      const game = activeGames.get(roomId);
+      if (!game || game.status === "finished") {
+        socket.emit("battle:reconnect_failed");
+        return;
+      }
+
+      const resolvedProblemIds = game.problemIds || (game.problemId ? [game.problemId] : []);
+
+      socket.emit("battle:reconnect_success", { 
+        startedAt: game.startedAt,
+        problemIds: resolvedProblemIds
+      });
+    });
 
     // Queue handling
 
@@ -97,27 +126,99 @@ export default function registerSocketHandlers(io: Server) {
       socket.to(roomId).emit("opponent:status_update", { problemIndex, status, passedCount });
     });
 
+    // Helper to call Next.js Elo endpoint
+    async function handleGameEnd(roomId: string, game: any, winnerId: string | null, draw: boolean = false) {
+      if (game.status === "finished") return;
+      game.status = "finished";
+      game.winnerId = winnerId;
+      
+      const playerAId = game.playerA.userId;
+      const playerBId = game.playerB.userId;
+      
+      let result: "winA" | "winB" | "draw" = "draw";
+      if (!draw) {
+        result = winnerId === playerAId ? "winA" : "winB";
+      }
+
+      let eloUpdates = null;
+      try {
+        const res = await fetch(`${process.env.NEXT_APP_URL || "http://localhost:3000"}/api/internal/elo`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "req-internal-key": process.env.INTERNAL_API_KEY || "development_secret_key",
+          },
+          body: JSON.stringify({ playerAId, playerBId, result }),
+        });
+        if (res.ok) {
+          eloUpdates = await res.json();
+        } else {
+          console.error("Elo update failed", await res.text());
+        }
+      } catch (err) {
+        console.error("Failed to reach Elo API:", err);
+      }
+
+      io.to(roomId).emit("battle:result", { 
+        winnerId, 
+        loserId: winnerId === playerAId ? playerBId : winnerId === playerBId ? playerAId : null,
+        draw,
+        eloUpdates 
+      });
+      
+      setTimeout(() => {
+        activeGames.delete(roomId);
+        userToRoom.delete(playerAId);
+        userToRoom.delete(playerBId);
+      }, 5000);
+    }
+
     // Code submission and win detection
-    socket.on("code:submitted", () => {
+    socket.on("code:submitted", async () => {
+      if (!socket.userId) return;
+      const roomId = userToRoom.get(socket.userId);
+      if (!roomId) return;
+      
+      const game = activeGames.get(roomId);
+      if (!game) return;
+      
+      await handleGameEnd(roomId, game, socket.userId);
+    });
+
+    // Time expiry win detection
+    socket.on("game:timeout_end", async ({ myScore, oppScore }) => {
+      if (!socket.userId) return;
+      const roomId = userToRoom.get(socket.userId);
+      if (!roomId) return;
+      
+      const game = activeGames.get(roomId);
+      if (!game || game.status === "finished") return; // Avoid processing twice if both clients emit
+
+      let winnerId = null;
+      let draw = false;
+      if (myScore > oppScore) {
+        winnerId = socket.userId;
+      } else if (myScore < oppScore) {
+        winnerId = game.playerA.userId === socket.userId ? game.playerB.userId : game.playerA.userId;
+      } else {
+        draw = true;
+      }
+
+      await handleGameEnd(roomId, game, winnerId, draw);
+    });
+
+    // Player Resign
+    socket.on("player:resign", async () => {
       if (!socket.userId) return;
       const roomId = userToRoom.get(socket.userId);
       if (!roomId) return;
       
       const game = activeGames.get(roomId);
       if (!game || game.status === "finished") return;
+
+      const winnerId = game.playerA.userId === socket.userId ? game.playerB.userId : game.playerA.userId;
       
-      game.status = "finished";
-      game.winnerId = socket.userId;
-      
-      const loserId = game.playerA.userId === socket.userId ? game.playerB.userId : game.playerA.userId;
-      
-      io.to(roomId).emit("battle:result", { winnerId: socket.userId, loserId });
-      
-      setTimeout(() => {
-        activeGames.delete(roomId);
-        userToRoom.delete(game.playerA.userId);
-        userToRoom.delete(game.playerB.userId);
-      }, 5000);
+      await handleGameEnd(roomId, game, winnerId, false);
     });
 
     // Unexpected disconnect handling
@@ -136,7 +237,7 @@ export default function registerSocketHandlers(io: Server) {
       const roomId = userToRoom.get(userId);
 
       if (roomId) {
-        socket.to(roomId).emit("opponent:reconnecting", {
+        io.to(roomId).emit("opponent:reconnecting", {
           reconnectEndsAt: RECONNECT_TIMEOUT,
         });
       }
@@ -158,6 +259,13 @@ export default function registerSocketHandlers(io: Server) {
 
         // notify final leave
         io.to(roomId).emit("opponent:left");
+
+        // trigger forfeit
+        const game = activeGames.get(roomId);
+        if (game && game.status !== "finished") {
+          const winnerId = game.playerA.userId === userId ? game.playerB.userId : game.playerA.userId;
+          handleGameEnd(roomId, game, winnerId, false).catch(err => console.error(err));
+        }
 
         // cleanup room state
         userToRoom.delete(userId);

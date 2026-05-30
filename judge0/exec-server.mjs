@@ -25,7 +25,7 @@ import path from "node:path";
 import os from "node:os";
 
 const PORT = parseInt(process.env.EXEC_PORT || "2358", 10);
-const TIMEOUT_MS = 15_000; // 15 second timeout per execution
+const TIMEOUT_MS = 2000; // 2 second timeout per execution
 const JOBS_DIR = path.join(os.tmpdir(), "code-royal-exec");
 
 // In-memory results store
@@ -40,7 +40,7 @@ const LANGUAGES = {
     ext: ".cpp",
     cmd: (f) => {
       const out = f.replace(".cpp", ".out");
-      return `g++ -std=c++23 -O2 -o ${out} ${f} && ${out}`;
+      return `g++ -std=c++23 -O2 -Werror=return-type -o ${out} ${f} && ${out}`;
     },
   },
 };
@@ -303,7 +303,7 @@ const server = http.createServer(async (req, res) => {
           
           // Pre-compile
           const out = path.join(sharedJobDir, "solution.out");
-          const compileCmd = `g++ -std=c++23 -O2 -o ${out} ${sourceFile}`;
+          const compileCmd = `g++ -std=c++23 -O2 -Werror=return-type -o ${out} ${sourceFile}`;
           
           compileErrorResult = await new Promise((resolve) => {
             exec(compileCmd, { cwd: sharedJobDir, timeout: 15000 }, (error, stdout, stderr) => {

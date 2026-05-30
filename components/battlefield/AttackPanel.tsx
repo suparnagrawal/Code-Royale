@@ -17,19 +17,19 @@ type AttackPanelProps = {
   results?: TestCaseResult[];
   isRunning?: boolean;
   currentProblemIndex: number;
+  oppCode: string;
 };
 
-const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning = false, currentProblemIndex }: AttackPanelProps) => {
+const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning = false, currentProblemIndex, oppCode }: AttackPanelProps) => {
   const socket = getSocket();
 
   const [code, setCode] = useState(initialCode);
-  const [oppCode, setOppCode] = useState("");
 
   const handleEmit = useMemo(
     () =>
       debounce(
-        (value: string) => {
-          socket.emit("typing:preview", { preview: value });
+        (value: string, pIndex: number) => {
+          socket.emit("typing:preview", { preview: value, problemIndex: pIndex });
         },
         300,
         { maxWait: 2000 },
@@ -46,26 +46,14 @@ const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning =
   // When the user switches problems, update the editor and broadcast the new view to the opponent
   useEffect(() => {
     setCode(initialCode || "");
-    handleEmit(initialCode || "");
+    handleEmit(initialCode || "", currentProblemIndex);
   }, [currentProblemIndex, initialCode, handleEmit]);
-
-  useEffect(() => {
-    function handlePreview(data: { preview: string }) {
-      setOppCode(data.preview);
-    }
-
-    socket.on("opponent:preview", handlePreview);
-
-    return () => {
-      socket.off("opponent:preview", handlePreview);
-    };
-  }, [socket]);
 
   function handleEditorChange(value: string | undefined) {
     const newVal = value || "";
 
     setCode(newVal);
-    handleEmit(newVal);
+    handleEmit(newVal, currentProblemIndex);
     onCodeChange?.(newVal);
   }
 
@@ -88,10 +76,19 @@ const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning =
             language="cpp"
             value={code}
             theme="vs-dark"
-            onChange={handleEditorChange}
+            onChange={(value) => {
+              setCode(value || "");
+              onCodeChange?.(value || "");
+              handleEmit(value || "", currentProblemIndex);
+            }}
             options={{
               minimap: { enabled: false },
               wordWrap: "on",
+              quickSuggestions: false,
+              suggestOnTriggerCharacters: false,
+              acceptSuggestionOnEnter: "off",
+              tabCompletion: "off",
+              wordBasedSuggestions: "off",
             }}
           />
         </div>
@@ -144,6 +141,7 @@ const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning =
                   cursorStyle: "block",
                   domReadOnly: true,
                   wordWrap: "on",
+                  quickSuggestions: false,
                 }}
               />
             )}

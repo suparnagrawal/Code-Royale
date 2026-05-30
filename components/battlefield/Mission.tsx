@@ -28,18 +28,15 @@ const Mission = ({ title, description, examples }: MissionProps) => {
                 if (props.children?.toString() === "Constraints") {
                   return <h2 className="text-lg font-bold text-primary mt-6 mb-3" {...props} />;
                 }
-                return <p className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-normal" {...props} />;
+                return <div className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-normal" {...props} />;
               },
-              h3: ({ node, ...props }) => <p className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-normal" {...props} />,
+              h3: ({ node, ...props }) => <h3 className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-normal" {...props} />,
               p: ({ node, ...props }) => <p className="mb-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-normal" {...props} />,
               ul: ({ node, ...props }) => <ul className="list-none mb-4 text-sm text-muted-foreground font-normal" {...props} />,
               li: ({ node, ...props }) => <li className="mb-1 font-normal" {...props} />,
-              code: ({ node, inline, ref, ...props }: any) => 
-                inline ? (
-                  <span className="font-normal text-muted-foreground" {...props} />
-                ) : (
-                  <div className="block mb-4 text-sm text-muted-foreground whitespace-pre-wrap font-normal" {...props} />
-                ),
+              code: ({ node, ref, ...props }: any) => (
+                <span className="font-normal text-muted-foreground" {...props} />
+              ),
               pre: ({ node, ref, ...props }: any) => <div className="mb-4 text-sm text-muted-foreground font-normal" {...props} />,
               strong: ({ node, ...props }) => {
                  if (props.children?.toString() === "Constraints") {

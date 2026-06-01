@@ -8,6 +8,7 @@ export interface ActiveGame {
   playerB: { userId: string; socketId: string; elo: number };
   problemId: string;
   problemIds: string[];
+  avgElo: number;
   language: string;
   status: "active" | "finished";
   startedAt: Date;

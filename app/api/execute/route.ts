@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
   let finalCode = code;
   if (langKey === "cpp") {
-    finalCode = `#include <bits/stdc++.h>\nusing namespace std;\n\n` + finalCode;
+    finalCode = `#include <bits/stdc++.h>\nusing namespace std;\n\n// Standard definitions for Linked Lists and Trees\nstruct ListNode {\n    int val;\n    ListNode *next;\n    ListNode() : val(0), next(nullptr) {}\n    ListNode(int x) : val(x), next(nullptr) {}\n    ListNode(int x, ListNode *next) : val(x), next(next) {}\n};\n\nstruct TreeNode {\n    int val;\n    TreeNode *left;\n    TreeNode *right;\n    TreeNode() : val(0), left(nullptr), right(nullptr) {}\n    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}\n    TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}\n};\n\n` + finalCode;
   }
 
   const driverCodes = problem.driverCode as Record<string, string>;

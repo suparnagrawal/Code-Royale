@@ -22,11 +22,13 @@ type BattlefieldClientProps = {
     id: string;
     title: string;
     description: string;
+    difficulty: "easy" | "medium" | "hard";
     testCases: TestCase[];
     starterCode?: Record<string, string>;
   }[];
   languageId: number;
   startedAt: string;
+  avgElo: number;
 };
 
 import { getBattleProblems } from "@/app/battlefield/actions";
@@ -40,6 +42,7 @@ function BattlefieldGame({
   problems,
   languageId,
   startedAt,
+  avgElo,
 }: BattlefieldClientProps) {
   let langKey = "";
   if (languageId === 54) langKey = "cpp";
@@ -65,7 +68,7 @@ function BattlefieldGame({
 
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // A battle is fully submitted if ALL questions are fully_passed
   const isSubmitted = questionStatus.every(status => status === "fully_passed");
 
@@ -141,7 +144,7 @@ function BattlefieldGame({
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
     const currentIndex = currentProblemIndex;
-    
+
     setResultsByProblem((prev) => {
       const next = [...prev];
       next[currentIndex] = [];
@@ -191,14 +194,14 @@ function BattlefieldGame({
       } else if (passedAmount > 0) {
         newStatus = "partially_passed";
       }
-      
+
       updateStatusAndEmit(currentIndex, newStatus, passedAmount);
 
       // Check overall win condition
       setQuestionStatus((prevStatus) => {
         const tempStatus = [...prevStatus];
         tempStatus[currentIndex] = newStatus;
-        
+
         const allQuestionsFullyPassed = tempStatus.every(s => s === "fully_passed");
         if (allQuestionsFullyPassed) {
           const socket = getSocket();
@@ -240,7 +243,22 @@ function BattlefieldGame({
     const start = new Date(startedAt).getTime();
     const now = Date.now();
     const elapsed = now - start;
-    const gameLengthMs = 30 * 60 * 1000;
+
+    let totalMinutes = 0;
+    for (const p of problems) {
+      if (p.difficulty === "easy") totalMinutes += 10;
+      else if (p.difficulty === "medium") totalMinutes += 20;
+      else if (p.difficulty === "hard") totalMinutes += 40;
+      else totalMinutes += 10; // fallback
+    }
+
+    // Scale totalMinutes by Elo
+    // E.g., 1200 -> 1.0
+    // 2000 -> 0.6
+    // 800 -> 1.5
+    const eloMultiplier = Math.max(0.5, 1200 / Math.max(800, avgElo || 1200));
+    const gameLengthMs = totalMinutes * eloMultiplier * 60 * 1000;
+
     return Math.floor(Math.max(0, gameLengthMs - elapsed) / 1000);
   });
 
@@ -354,9 +372,9 @@ function BattlefieldGame({
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-6 p-10 bg-card border rounded-lg shadow-2xl animate-in fade-in zoom-in duration-300">
             <h1 className={`text-4xl font-bold ${battleResult === "win" ? "text-green-500" : battleResult === "loss" ? "text-destructive" : "text-yellow-500"}`}>
-              {battleResult === "win" ? "You Won! 🏆" : battleResult === "loss" ? "You Lost 💔" : "It's a Draw 🤝"}
+              {battleResult === "win" ? "You Won!" : battleResult === "loss" ? "You Lost" : "It's a Draw"}
             </h1>
-            
+
             {eloData && (
               <div className="bg-muted/50 rounded-lg px-6 py-3 flex flex-col items-center gap-1 border">
                 <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">New Elo Rating</span>
@@ -370,18 +388,18 @@ function BattlefieldGame({
             )}
 
             <div className="flex gap-8 my-4 items-center justify-center">
-               <div className="flex flex-col items-center">
-                  <span className="text-sm text-muted-foreground uppercase">Your Score</span>
-                  <span className="text-4xl font-mono font-bold text-primary">{passedCounts.reduce((a,b)=>a+b,0)}</span>
-               </div>
-               <div className="text-xl font-bold text-muted-foreground">VS</div>
-               <div className="flex flex-col items-center">
-                  <span className="text-sm text-muted-foreground uppercase">Opponent</span>
-                  <span className={`text-4xl font-mono font-bold ${battleResult === "win" ? "text-destructive" : battleResult === "loss" ? "text-green-500" : "text-yellow-500"}`}>{opponentPassedCounts.reduce((a,b)=>a+b,0)}</span>
-               </div>
+              <div className="flex flex-col items-center">
+                <span className="text-sm text-muted-foreground uppercase">Your Score</span>
+                <span className="text-4xl font-mono font-bold text-primary">{passedCounts.reduce((a, b) => a + b, 0)}</span>
+              </div>
+              <div className="text-xl font-bold text-muted-foreground">VS</div>
+              <div className="flex flex-col items-center">
+                <span className="text-sm text-muted-foreground uppercase">Opponent</span>
+                <span className={`text-4xl font-mono font-bold ${battleResult === "win" ? "text-destructive" : battleResult === "loss" ? "text-green-500" : "text-yellow-500"}`}>{opponentPassedCounts.reduce((a, b) => a + b, 0)}</span>
+              </div>
             </div>
             <p className="text-muted-foreground text-center max-w-md">
-              {timeLeft === 0 
+              {timeLeft === 0
                 ? "Time's up! The winner was decided by total passed test cases."
                 : battleResult === "win"
                   ? "Excellent work! Your code passed all test cases first."
@@ -461,6 +479,7 @@ function BattlefieldGame({
 export default function BattlefieldClient({ languageId }: { languageId: number }) {
   const [problems, setProblems] = useState<any[]>([]);
   const [startedAt, setStartedAt] = useState<string>("");
+  const [avgElo, setAvgElo] = useState<number>(1200);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -482,10 +501,15 @@ export default function BattlefieldClient({ languageId }: { languageId: number }
     }
 
     const handleFailed = () => {
-      window.location.href = "/controlBooth";
+      setLoading((prev) => {
+        if (prev) {
+          window.location.href = "/controlBooth";
+        }
+        return false;
+      });
     };
 
-    const handleSuccess = async ({ problemIds, startedAt }: { problemIds: string[], startedAt: string }) => {
+    const handleSuccess = async ({ problemIds, startedAt, avgElo }: { problemIds: string[], startedAt: string, avgElo?: number }) => {
       if (!problemIds || problemIds.length === 0) {
         handleFailed();
         return;
@@ -498,6 +522,7 @@ export default function BattlefieldClient({ languageId }: { languageId: number }
         }
         setProblems(fetched);
         setStartedAt(startedAt);
+        if (avgElo) setAvgElo(avgElo);
         setLoading(false);
       } catch (err) {
         console.error("Failed to fetch problems", err);
@@ -531,5 +556,5 @@ export default function BattlefieldClient({ languageId }: { languageId: number }
     );
   }
 
-  return <BattlefieldGame problems={problems} languageId={languageId} startedAt={startedAt} />;
+  return <BattlefieldGame problems={problems} languageId={languageId} startedAt={startedAt} avgElo={avgElo} />;
 }

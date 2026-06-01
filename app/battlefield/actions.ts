@@ -28,6 +28,7 @@ export async function getBattleProblems(ids: string[]) {
     id: problem!.id,
     title: problem!.title,
     description: problem!.description,
+    difficulty: problem!.difficulty,
     testCases: problem!.testCases,
     starterCode: problem!.starterCode,
   }));

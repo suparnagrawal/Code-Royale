@@ -82,7 +82,8 @@ export default function registerSocketHandlers(io: Server) {
 
       socket.emit("battle:reconnect_success", { 
         startedAt: game.startedAt,
-        problemIds: resolvedProblemIds
+        problemIds: resolvedProblemIds,
+        avgElo: game.avgElo || 1200
       });
     });
 

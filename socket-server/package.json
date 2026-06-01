@@ -13,7 +13,9 @@
     "typescript": "^6.0.3"
   },
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "start:bun": "bun run src/index.ts"
   },
   "name": "socket",
   "module": "index.ts",

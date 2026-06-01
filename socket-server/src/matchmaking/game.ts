@@ -47,6 +47,7 @@ export async function createGame(io: Server, p1: player, p2: player) {
     roomId,
     playerA: { userId: p1.userId, socketId: p1.socketId, elo: p1.elo },
     playerB: { userId: p2.userId, socketId: p2.socketId, elo: p2.elo },
+    avgElo,
     problemId: problemIds[0], // Keep for backward compatibility or change to problemIds
     problemIds, // Add array of IDs
     language: "cpp",
@@ -57,6 +58,7 @@ export async function createGame(io: Server, p1: player, p2: player) {
   // Emit battle start with problem data
   const battleData = {
     roomId,
+    avgElo,
     problemIds,
     problems: problemsArray.map(p => ({
       id: p.id,

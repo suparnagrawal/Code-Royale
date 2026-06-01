@@ -1,0 +1,20 @@
+FROM alpine:latest
+
+# Install Node.js, Python 3, and g++ (C++ compiler)
+RUN apk add --no-cache nodejs npm python3 g++
+
+# Set up working directory
+WORKDIR /app
+
+# Copy the execution server script
+COPY judge0/exec-server.mjs .
+
+# Expose the Judge0 port
+EXPOSE 2358
+
+# Run the execution server as an unprivileged user for extra safety
+RUN adduser -D runner
+USER runner
+
+# Start the server
+CMD ["node", "exec-server.mjs"]

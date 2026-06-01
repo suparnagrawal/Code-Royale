@@ -14,27 +14,48 @@ const EnterBattlefield = ({ elo = 1200 }: { elo?: number }) => {
   const [gameLength, setGameLength] = useState<1 | 3 | 5>(1);
 
   useEffect(() => {
-    const socket = getSocket();
+    let active = true;
 
-    const handleQueued = () => {
-      console.log("queued event received");
-      setMatchmakingState("queued");
-    };
+    async function initSocket() {
+      try {
+        const res = await fetch("/api/socket-ticket", { method: "POST" });
+        if (!res.ok) {
+          console.error("Failed to get socket ticket", res.status);
+          return;
+        }
+        
+        const { ticket } = await res.json();
+        if (!active) return;
 
-    const handleBattleStart = () => {
-      router.replace(`/battlefield`);
-    };
+        const socket = getSocket(ticket);
 
-    socket.on("queued", handleQueued);
-    socket.on("battle:start", handleBattleStart);
-    socket.on("battle:ongoing", handleBattleStart);
+        const handleQueued = () => {
+          console.log("queued event received");
+          setMatchmakingState("queued");
+        };
 
-    socket.connect();
+        const handleBattleStart = () => {
+          router.replace(`/battlefield`);
+        };
+
+        socket.on("queued", handleQueued);
+        socket.on("battle:start", handleBattleStart);
+        socket.on("battle:ongoing", handleBattleStart);
+
+        socket.connect();
+      } catch (error) {
+        console.error("Error initializing socket:", error);
+      }
+    }
+
+    initSocket();
 
     return () => {
-      socket.off("queued", handleQueued);
-      socket.off("battle:start", handleBattleStart);
-      socket.off("battle:ongoing", handleBattleStart);
+      active = false;
+      const socket = getSocket();
+      socket.off("queued");
+      socket.off("battle:start");
+      socket.off("battle:ongoing");
     };
   }, [router]);
 

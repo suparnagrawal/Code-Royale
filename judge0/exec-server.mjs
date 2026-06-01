@@ -202,7 +202,7 @@ const server = http.createServer(async (req, res) => {
   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, ngrok-skip-browser-warning");
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -383,7 +383,7 @@ const server = http.createServer(async (req, res) => {
 
 await ensureJobsDir();
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Code Royale Execution Server running on port ${PORT}`);
   console.log(`   Judge0-compatible API at http://localhost:${PORT}`);
   console.log(`\n   Available languages:`);

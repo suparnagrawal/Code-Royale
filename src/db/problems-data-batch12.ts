@@ -15,7 +15,7 @@ export const seedProblemsBatch12: Problem[] = [
       { input: "3 1 2 3", expectedOutput: "0", isExample: false },
       { input: "4 1 2 3 4", expectedOutput: "0", isExample: false },
       { input: "5 10 20 30 40 50", expectedOutput: "10", isExample: false },
-      { input: "6 100 200 300 400 500 600", expectedOutput: "0", isExample: false },
+      { input: "6 100 200 300 400 500 600", expectedOutput: "100", isExample: false },
       { input: "3 5 5 5", expectedOutput: "5", isExample: false },
       { input: "7 1 1 1 1 1 1 1", expectedOutput: "1", isExample: false },
       { input: "8 1 2 3 4 5 6 7 8", expectedOutput: "0", isExample: false }

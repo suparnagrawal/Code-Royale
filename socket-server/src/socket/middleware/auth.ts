@@ -1,10 +1,11 @@
 import { Server, Socket } from "socket.io";
 import { userToSocket } from "../../matchmaking/state";
 
-type AuthResponse = {
-  user: {
-    id: string;
-  };
+import crypto from "crypto";
+
+type TicketPayload = {
+  userId: string;
+  exp: number;
 };
 
 declare module "socket.io" {
@@ -16,28 +17,40 @@ declare module "socket.io" {
 export default function registerAuthMiddleware(io: Server) {
   return async (socket: Socket, next: (err?: Error) => void) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_APP_URL}/api/internal/user-info`,
-        {
-          headers: {
-            cookie: socket.handshake.headers.cookie || "",
-
-            "req-internal-key": process.env.INTERNAL_API_KEY!,
-          },
-        },
-      );
-
-      if (!response.ok) {
+      console.log(`[AUTH] Authenticating socket ${socket.id}...`);
+      
+      const ticket = socket.handshake.auth.ticket;
+      if (!ticket) {
+        console.error(`[AUTH] No ticket provided.`);
         return next(new Error("Unauthorized"));
       }
 
-      /*
-      1. Attach authenticated user to socket 
-      2. Disconnect old socket ,if any
-      3. Update userToSocket map to new socket
-      */
-      const data = (await response.json()) as AuthResponse;
-      const userId = data.user.id;
+      const [payloadBase64, signature] = ticket.split(".");
+      if (!payloadBase64 || !signature) {
+        console.error(`[AUTH] Invalid ticket format.`);
+        return next(new Error("Unauthorized"));
+      }
+
+      // Re-hash to verify
+      const expectedSignature = crypto
+        .createHmac("sha256", process.env.INTERNAL_API_KEY!)
+        .update(payloadBase64)
+        .digest("hex");
+
+      if (signature !== expectedSignature) {
+        console.error(`[AUTH] Invalid ticket signature.`);
+        return next(new Error("Unauthorized"));
+      }
+
+      const payloadStr = Buffer.from(payloadBase64, "base64").toString("utf8");
+      const payload = JSON.parse(payloadStr) as TicketPayload;
+      
+      if (Date.now() > payload.exp) {
+        console.error(`[AUTH] Ticket expired.`);
+        return next(new Error("Unauthorized"));
+      }
+
+      const userId = payload.userId;
       socket.userId = userId;
 
       const oldSocketId = userToSocket.get(userId);
@@ -49,8 +62,10 @@ export default function registerAuthMiddleware(io: Server) {
 
       userToSocket.set(userId, socket.id);
 
+      console.log(`[AUTH] Success! Socket ${socket.id} authenticated as User ${userId}`);
       next();
-    } catch {
+    } catch (err) {
+      console.error(`[AUTH] Exception during authentication:`, err);
       next(new Error("Unauthorized"));
     }
   };

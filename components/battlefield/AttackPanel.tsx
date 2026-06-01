@@ -130,20 +130,42 @@ const AttackPanel = ({ initialCode = "", onCodeChange, results = [], isRunning =
                 <StatusPanel results={results} isRunning={isRunning} />
               </div>
             ) : (
-              <Editor
-                height="100%"
-                language="cpp"
-                value={oppCode}
-                theme="vs-dark"
-                options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  cursorStyle: "block",
-                  domReadOnly: true,
-                  wordWrap: "on",
-                  quickSuggestions: false,
-                }}
-              />
+              <div 
+                className="w-full h-full select-none"
+                onCopy={(e) => e.preventDefault()}
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                <Editor
+                  height="100%"
+                  language="cpp"
+                  value={oppCode}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    cursorStyle: "line",
+                    domReadOnly: true,
+                    wordWrap: "on",
+                    quickSuggestions: false,
+                    contextmenu: false,
+                    selectionHighlight: false,
+                    selectionClipboard: false,
+                  }}
+                  onMount={(editor, monaco) => {
+                    editor.onKeyDown((e: any) => {
+                      if ((e.ctrlKey || e.metaKey) && (e.keyCode === monaco.KeyCode.KeyC || e.keyCode === monaco.KeyCode.KeyX || e.keyCode === monaco.KeyCode.Insert)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    });
+                    editor.onDidChangeCursorSelection((e: any) => {
+                      if (e.reason === monaco.cursor.CursorChangeReason.Explicit) {
+                        editor.setSelection(new monaco.Selection(1, 1, 1, 1));
+                      }
+                    });
+                  }}
+                />
+              </div>
             )}
           </div>
         </div>

@@ -92,6 +92,8 @@ export default function registerSocketHandlers(io: Server) {
     socket.on("queue:enter", async (data: any) => {
       if (!socket.userId) return;
 
+      console.log(`[SOCKET] User ${socket.userId} requested to enter queue.`);
+
       const elo = 1000;
       let gameLength = 1;
       

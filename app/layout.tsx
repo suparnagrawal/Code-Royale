@@ -8,6 +8,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import ServiceHealthMonitor from "@/components/global/ServiceHealthMonitor";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -45,6 +46,7 @@ export default async function RootLayout({
       >
         <main>
           <Toaster />
+          <ServiceHealthMonitor />
           {children}
         </main>
       </body>

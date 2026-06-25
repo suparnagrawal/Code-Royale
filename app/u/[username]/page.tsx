@@ -55,13 +55,27 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   // Build chart data
   const chartData: { date: string; elo: number }[] = [];
-  // Add base point
-  chartData.push({ date: "Start", elo: 1200 });
+
+  // Add base point based on the first recorded battle (or default 1200)
+  const firstBattle = allBattlesForChart[0];
+  const startingElo = firstBattle
+    ? (firstBattle.playerAId === profileUser.id ? firstBattle.eloBeforeA : firstBattle.eloBeforeB)
+    : 1200;
+
+  chartData.push({ date: "Start", elo: startingElo });
+
+  const dateCounts = new Map<string, number>();
 
   allBattlesForChart.forEach((b) => {
     const isA = b.playerAId === profileUser.id;
     const newElo = isA ? b.eloBeforeA + b.eloChangeA : b.eloBeforeB + b.eloChangeB;
-    const dateLabel = new Date(b.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const baseDate = new Date(b.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+    const count = (dateCounts.get(baseDate) || 0) + 1;
+    dateCounts.set(baseDate, count);
+
+    const dateLabel = count > 1 ? `${baseDate} (${count})` : baseDate;
+
     chartData.push({
       date: dateLabel,
       elo: newElo,
@@ -143,7 +157,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                   const isDraw = b.winnerId === null;
                   const isWin = !isDraw && b.winnerId === profileUser.id;
                   const eloChange = isA ? b.eloChangeA : b.eloChangeB;
-                  
+
                   return (
                     <tr key={b.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-4 font-medium">

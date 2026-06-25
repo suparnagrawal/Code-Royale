@@ -3,4 +3,5 @@ export type player = {
   userId: string;
   socketId: string;
   gameLength?: number;
+  queuedAt?: number;
 };

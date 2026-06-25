@@ -19,6 +19,7 @@ export function addToQueue(
     socketId,
     elo,
     gameLength,
+    queuedAt: Date.now(),
   });
 
   io.to(socketId).emit("queued");

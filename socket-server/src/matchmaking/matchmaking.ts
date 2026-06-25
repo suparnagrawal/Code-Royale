@@ -6,23 +6,34 @@ export function matchPlayers(io: Server) {
   if (queue.length < 2) return;
   queue.sort((a, b) => a.elo - b.elo);
 
+  const now = Date.now();
+
   // We need to find pairs of players with the SAME gameLength
   for (let i = 0; i < queue.length; i++) {
     const p1 = queue[i];
+    const p1WaitTime = (now - (p1.queuedAt || now)) / 1000;
     
     for (let j = i + 1; j < queue.length; j++) {
       const p2 = queue[j];
+      const p2WaitTime = (now - (p2.queuedAt || now)) / 1000;
       
       if (p1.gameLength === p2.gameLength) {
-        // Match found!
-        queue.splice(j, 1);
-        queue.splice(i, 1);
-        
-        createGame(io, p1, p2);
-        
-        // Restart the matching process since array mutated
-        matchPlayers(io);
-        return;
+        const eloDiff = Math.abs(p1.elo - p2.elo);
+        const maxWaitTime = Math.max(p1WaitTime, p2WaitTime);
+        // Base allowed difference is 50. Increases by 50 every 5 seconds.
+        const maxAllowedDiff = 50 + (maxWaitTime / 5) * 50;
+
+        if (eloDiff <= maxAllowedDiff) {
+          // Match found!
+          queue.splice(j, 1);
+          queue.splice(i, 1);
+          
+          createGame(io, p1, p2);
+          
+          // Restart the matching process since array mutated
+          matchPlayers(io);
+          return;
+        }
       }
     }
   }

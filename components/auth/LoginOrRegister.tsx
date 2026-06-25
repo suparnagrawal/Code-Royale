@@ -59,13 +59,13 @@ export default function LoginOrRegister() {
           name: parsed.data.username,
           email: parsed.data.email,
           password: parsed.data.password,
-          callbackURL: "/controlBooth",
         });
 
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success("Registration success");
+          toast.success("Registration success. Please login.");
+          setIsLogin(true);
         }
       }
     } catch (err) {

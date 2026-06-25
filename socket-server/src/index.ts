@@ -20,7 +20,14 @@ const io = new Server(server, {
   },
 });
 
+import { matchPlayers } from "./matchmaking/matchmaking";
+
 registerSocketHandlers(io);
+
+// Periodically run matchmaking to catch people whose Elo difference tolerance has increased
+setInterval(() => {
+  matchPlayers(io);
+}, 2000);
 
 server.listen(3001, () => {
   console.log("Socket server running on port 3001");

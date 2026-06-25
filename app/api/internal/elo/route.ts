@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { playerAId, playerBId, result } = body; 
+    const { playerAId, playerBId, result, problemId, language, startedAt } = body; 
     // result: "winA", "winB", "draw"
 
     if (!playerAId || !playerBId || !result) {
@@ -64,6 +64,23 @@ export async function POST(req: Request) {
       gamesPlayed: playerB.gamesPlayed + 1, 
       peakElo: Math.max(playerB.peakElo, newEloB) 
     }).where(eq(user.id, playerBId));
+
+    if (problemId && startedAt) {
+      const { battles } = await import("@/src/db/game-schema");
+      await db.insert(battles).values({
+        playerAId,
+        playerBId,
+        winnerId: result === "winA" ? playerAId : result === "winB" ? playerBId : null,
+        problemId,
+        language: language || "cpp",
+        eloChangeA: deltaA,
+        eloChangeB: deltaB,
+        eloBeforeA: eloA,
+        eloBeforeB: eloB,
+        startedAt: new Date(startedAt),
+        endedAt: new Date()
+      });
+    }
 
     return NextResponse.json({
       [playerAId]: { newElo: newEloA, delta: deltaA },

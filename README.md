@@ -1,339 +1,198 @@
 # Code Royale
+![Version](https://img.shields.io/badge/version-1.0.0-lightgrey)
+![Language](https://img.shields.io/badge/language-TypeScript-blue)
 
-Code Royale is a real-time, head-to-head coding arena where two authenticated players are matched, placed into a shared room, and see each other's edits in near real time; the interesting part is the split between the Next.js app that owns auth and UI and a separate Socket.io service that owns matchmaking and room state.
+---
 
-## Demo Link
+## Description
+Code Royale is a real-time, head-to-head coding arena where developers duel in live programming challenges. It solves the isolation of solo practice by matching you with similarly skilled opponents for competitive, split-screen coding battles. This platform is built for developers and competitive programmers looking to sharpen their skills under pressure.
 
-To be updated
+---
 
-## How It Works
+## Live Deployment
+You can play a live version of Code Royale here: **[code-royale-1v1.vercel.app](https://code-royale-git-main-suparnagrawals-projects.vercel.app/)**
 
-The Next.js app is built in the App Router and gates the UI on a server-side session check. Auth is implemented with better-auth, and its adapter writes directly to Postgres through Drizzle using the Neon serverless driver. That keeps session state in the database and allows the app to expose a small internal endpoint that returns the authenticated user id.
+> [!WARNING]
+> **Live Deployment Constraints**
+> The Vercel deployment linked above is currently configured to connect to backend services running directly on the **author's local laptop** (via ngrok tunnels). 
+> 
+> This means the matchmaking (Socket.io) and code execution (Judge0) features will **only work if the author's laptop is currently online and running the servers**. If the live link fails to connect, the backend services are offline.
 
-The Socket.io server lives in a separate process (there is no custom server in this repo). It authenticates sockets by calling the internal user endpoint with an internal key, then queues players and creates a room when two are available. The web client connects with socket.io-client and listens for queue and battle events. Judge0 is not wired yet; auth is better-auth and code execution is not implemented.
-
-## Stack
-
-| Technology           | Purpose                                            |
-| -------------------- | -------------------------------------------------- |
-| Next.js (App Router) | Web UI and API routes                              |
-| React                | Component model for the UI                         |
-| TypeScript           | Type safety across the app and socket server       |
-| Tailwind CSS         | Styling and design tokens                          |
-| shadcn/ui + Radix UI | UI primitives and components                       |
-| better-auth          | Authentication flows and session handling          |
-| Drizzle ORM          | SQL schema and ORM layer                           |
-| Neon (serverless)    | Postgres driver used by Drizzle                    |
-| PostgreSQL           | Persistent auth data store                         |
-| Socket.io            | Realtime transport for matchmaking and typing sync |
-| Express              | HTTP server hosting the Socket.io instance         |
-| Bun                  | Runtime used to execute the socket server          |
-| Monaco Editor        | Code editor in the battlefield view                |
-| Zod                  | Form validation for login and registration         |
-| Sonner               | Toast notifications                                |
+---
 
 ## Features
+- **Real-time Matchmaking**: Automatically queue and match with opponents based on Elo rating and game length.
+- **Live Typing Sync**: See your opponent's code keystrokes in real-time as they type.
+- **Elo Rating System**: Gain or lose points based on match outcomes to climb the competitive ladder.
+- **Secure Authentication**: Email/password and Google OAuth supported via Better-Auth.
+- **Code Execution Engine**: Safely run and test algorithmic solutions using a self-hosted Judge0 instance.
+- **Intelligent Split Architecture**: High-frequency traffic is smartly routed to optimize performance. Real-time typing sync and matchmaking run entirely on the standalone Socket.io server, while intensive code compilation requests are completely offloaded to the isolated Judge0 execution engine. This deliberate separation keeps the core Next.js frontend lightweight, secure, and incredibly responsive.
 
-### Shipped
+---
 
-- Email/password sign-up and sign-in with session gating and logout
-- Google OAuth sign-in wired through the auth client
-  -Matchmaking queue and battle start flow (with hardcoded elo)
-- Live opponent typing preview
+## Tech Stack
+- **TypeScript**: End-to-end type safety.
+- **Next.js (App Router) & React**: Frontend UI and serverless API endpoints.
+- **Node.js & Express & Socket.io**: Persistent backend server for realtime matchmaking.
+- **PostgreSQL & Drizzle ORM**: Persistent data storage for users, sessions, and battles.
+- **Better-Auth**: Flexible authentication and session management.
+- **Judge0**: Remote code execution engine.
+- **Tailwind CSS & shadcn/ui**: Styling and accessible UI components.
 
-### In progress
+---
 
-- Elo logic and integration
-- Code execution and judging (Run/Submit have no handlers right now)
-- Mission content and game state (placeholder strings and no backend data)
-- Battlefield status panel and enter page stubs
+## Getting Started
+
+### Prerequisites
+You will need the following installed on your machine:
+- [Node.js](https://nodejs.org/) (v18+)
+- [Bun](https://bun.sh/) (for the socket server runtime)
+- A PostgreSQL database (e.g., Neon)
+- A running Judge0 instance (via Docker)
+
+### Installation
+Clone the repository and install the dependencies for both the web app and the socket server:
+
+```bash
+# Clone the repo
+git clone https://github.com/yourusername/code-royale.git
+cd code-royale
+
+# Install frontend dependencies
+bun install
+
+# Install socket server dependencies
+cd socket-server
+bun install
+```
+
+### Environment Variables
+Create a `.env` file in the root directory and a `.env` file in the `socket-server/` directory:
+
+| Variable | Service | Description |
+|---|---|---|
+| `DATABASE_URL` | Web App | PostgreSQL connection string used by Drizzle |
+| `BETTER_AUTH_URL` | Web App | Base URL used by better-auth for callbacks |
+| `BETTER_AUTH_SECRET` | Web App | Secret key for generating session tokens |
+| `GOOGLE_CLIENT_ID` | Web App | Google OAuth client ID for SSO |
+| `GOOGLE_CLIENT_SECRET` | Web App | Google OAuth client secret for SSO |
+| `NEXT_PUBLIC_SOCKET_URL` | Web App | URL pointing to your running socket server |
+| `INTERNAL_API_KEY` | Web/Socket | Shared secret for internal user lookups and socket auth |
+| `JUDGE0_URL` | Web App | URL of your self-hosted Judge0 instance |
+| `NEXT_APP_URL` | Socket Server | Base URL of your Next.js frontend |
+
+---
+
+## Usage
+Start both the Next.js web application and the Socket.io server to enable matchmaking and live typing sync.
+
+```bash
+# Start the Next.js frontend (from the root directory)
+bun run dev
+
+# Open a new terminal and start the socket server
+cd socket-server
+bun run src/index.ts
+```
+
+Once running, you can navigate to `http://localhost:3000`, log in, and enter the matchmaking queue.
+
+---
 
 ## Project Structure
-
-```
+```text
 .
-├─ .env                       Local environment variables for web app and socket server
-├─ .gitignore                 Git ignore rules
-├─ README.md                  Project documentation
-├─ app/                       Next.js App Router routes and layout
-│  ├─ api/                    API route handlers
-│  │  ├─ auth/                better-auth Next.js handler
-│  │  │  └─ [...all]/         catch-all auth route
-│  │  │     └─ route.ts       better-auth request handler
-│  │  └─ internal/            internal endpoints for socket server
-│  │     └─ user-info/        internal session lookup
-│  │        └─ route.ts       returns authenticated user id for sockets
-│  ├─ battlefield/            battlefield page
-│  │  └─ page.tsx             battlefield layout with mission + editor panels
-│  ├─ controlBooth/           pre-match staging page
-│  │  └─ page.tsx             queue entry UI + logout
-│  ├─ enter/                  entry route stub
-│  │  └─ page.tsx             empty page placeholder
-│  ├─ favicon.ico             app icon
-│  ├─ globals.css             Tailwind base and theme tokens
-│  ├─ layout.tsx              root layout with auth gating and fonts
-│  └─ page.tsx                home page placeholder with logout button
-├─ bun.lock                   Bun lockfile for the web app
-├─ components/                React components
-│  ├─ auth/                   authentication UI
-│  │  ├─ LoginOrRegister.tsx  login/register form and Google sign-in
-│  │  └─ LogoutButton.tsx     sign-out button and session refresh
-│  ├─ battlefield/            battlefield UI pieces
-│  │  ├─ AttackPanel.tsx      dual Monaco editors with typing preview
-│  │  ├─ BattlefieldNavbar.tsx top bar with mission info and controls
-│  │  ├─ Mission.tsx          mission description and examples panel
-│  │  └─ StatusPanel.tsx      empty status panel stub
-│  ├─ controlBooth/           pre-match UI
-│  │  └─ EnterBattlefield.tsx connects socket and joins matchmaking
-│  ├─ monaco/                 Monaco editor wrapper
-│  │  └─ editor.tsx           standalone Monaco editor component
-│  └─ ui/                     shadcn UI primitives
-│     ├─ button.tsx           button component styles
-│     ├─ card.tsx             card layout components
-│     ├─ field.tsx            form field helpers
-│     ├─ input.tsx            input component styles
-│     ├─ label.tsx            label component styles
-│     ├─ menubar.tsx          menubar primitives
-│     ├─ scroll-area.tsx      scroll area primitives
-│     ├─ separator.tsx        separator primitive
-│     └─ sonner.tsx           toast wrapper and icons
-├─ components.json            shadcn UI config
-├─ drizzle.config.ts          Drizzle Kit configuration
-├─ eslint.config.mjs          ESLint configuration
-├─ lib/                       shared app utilities
-│  ├─ auth-client.ts          better-auth client helpers
-│  ├─ auth.ts                 better-auth server config with Drizzle adapter
-│  ├─ socket.ts               socket.io client singleton
-│  ├─ utils.ts                class name merge helper
-│  └─ validations/
-│     └─ auth.ts              Zod schemas for login/register
-├─ next-env.d.ts              Next.js type declarations
-├─ next.config.ts             Next.js config (default)
-├─ package-lock.json          npm lockfile
-├─ package.json               web app scripts and dependencies
-├─ postcss.config.mjs         PostCSS config for Tailwind
-├─ public/                    static assets
-│  ├─ file.svg                static icon
-│  ├─ globe.svg               static icon
-│  ├─ next.svg                Next.js logo
-│  ├─ vercel.svg              Vercel logo
-│  └─ window.svg              static icon
-├─ socket-server/             standalone Socket.io service
-│  ├─ .gitignore              socket server ignore rules
-│  ├─ bun.lock                Bun lockfile for socket server
-│  ├─ package.json            socket server dependencies
-│  ├─ README.md               socket server usage notes
-│  ├─ tsconfig.json           socket server TypeScript config
-│  └─ src/
-│     ├─ index.ts             Express + Socket.io server entrypoint
-│     ├─ matchmaking/
-│     │  ├─ game.ts           creates rooms and emits battle start
-│     │  ├─ matchmaking.ts    selects players from the queue
-│     │  ├─ queue.ts          queue state and queue events
-│     │  └─ state.ts          in-memory matchmaking state
-│     ├─ socket/
-│     │  ├─ middleware/
-│     │  │  └─ auth.ts        socket auth via internal user-info endpoint
-│     │  └─ socket.ts         socket event handlers
-│     └─ types/
-│        └─ player.ts         player type for matchmaking
-├─ src/
-│  └─ db/
-│     ├─ auth-schema.ts       Drizzle schema for auth tables
-│     ├─ db.ts                Drizzle client wired to Neon
-│     └─ schema.ts            schema export barrel
-└─ tsconfig.json              TypeScript config for the web app
+├── app/                  # Next.js App Router pages and layouts
+│   ├── api/              # API Route handlers (Auth, Execution, Internal logic)
+│   ├── battlefield/      # Main real-time code editor interface
+│   ├── controlBooth/     # Pre-match staging and matchmaking queue
+│   ├── u/[username]/     # User profile and Elo progression chart
+├── components/           # Reusable React components (UI, Auth, Battlefield)
+├── lib/                  # Shared utilities and auth configuration
+├── public/               # Static assets and icons
+├── socket-server/        # Independent Express/Socket.io service
+│   └── src/              # Matchmaking queues, active game state, and socket handlers
+├── src/db/               # Drizzle ORM schemas and database client
+└── drizzle.config.ts     # Configuration for database migrations
 ```
 
-## Local Setup
+---
 
-The repo runs two processes: the Next.js web app and the Socket.io server. Start both for matchmaking and live typing.
+## API Reference
+The Next.js application exposes a robust set of endpoints to handle authentication, code execution, and secure communication with the independent Socket server.
 
-1. Install web app dependencies:
+| Endpoint | Method | Payload / Parameters | Description |
+|---|---|---|---|
+| `/api/auth/*` | `GET/POST` | *Better Auth Internal* | Handles all authentication flows, callbacks, and session management. |
+| `/api/execute` | `POST` | `code`, `languageId`, `testCases`, `problemId`, `runAll` | Securely forwards code to Judge0, appending the problem's driver code, and returns execution results. |
+| `/api/socket-ticket` | `POST` | *None* | Generates a short-lived (60s) HMAC signed ticket for the frontend to securely authenticate with the socket server. |
+| `/api/internal/user-info` | `GET` | `cookie` | Used exclusively by the socket server to validate session cookies and resolve a user ID. |
+| `/api/internal/problem/random`| `GET` | `avgElo`, `count` | Internal endpoint fetching a specific number of random algorithmic problems matching the players' skill level. |
+| `/api/internal/elo` | `POST` | `playerAId`, `playerBId`, `result`, `problemId`, `language`, `startedAt` | Processes post-match results, recalculates Elo, and inserts the battle record into the database. |
 
-```
-npm install
-```
+---
 
-2. Install socket server dependencies:
+## Feature Workflows
 
-```
-cd socket-server
-bun install
-```
-
-3. Create or update the environment file:
-
-```
-.env
-```
-
-| Variable             | Service                 | What it does                                               | Required           |
-| -------------------- | ----------------------- | ---------------------------------------------------------- | ------------------ |
-| DATABASE_URL         | web app                 | Postgres connection string used by Drizzle                 | required           |
-| BETTER_AUTH_URL      | web app                 | Base URL used by better-auth for callbacks                 | required           |
-| GOOGLE_CLIENT_ID     | web app                 | Google OAuth client id for better-auth                     | required           |
-| GOOGLE_CLIENT_SECRET | web app                 | Google OAuth client secret for better-auth                 | required           |
-| INTERNAL_API_KEY     | web app + socket server | Shared secret for the internal user lookup and socket auth | required           |
-| BETTER_AUTH_SECRET   | web app                 | For future applications                                    | Currently optional |
-| SOCKET_SERVER_URL    | web app                 | For future applications                                    | Currently optional |
-
-4. Run database migrations (no scripts are defined, use Drizzle Kit directly):
-
-```
-npx drizzle-kit generate
-npx drizzle-kit migrate
+### 1. Real-Time Matchmaking
+```mermaid
+sequenceDiagram
+    participant P1 as Player 1
+    participant P2 as Player 2
+    participant S as Socket Server
+    participant DB as Next.js API
+    
+    P1->>S: Join Queue (Elo 1200)
+    P2->>S: Join Queue (Elo 1250)
+    S->>S: Find Match (Elo Diff < Tolerance)
+    S->>DB: Fetch Random Problems
+    DB-->>S: Return Problem IDs
+    S->>P1: Emit Battle Start (Room ID)
+    S->>P2: Emit Battle Start (Room ID)
 ```
 
-5. Start the web app dev server:
-
-```
-npm run dev
-```
-
-6. Start the socket server:
-
-```
-cd socket-server
-bun run src/index.ts
-```
-
-## Database Schema
-
-### user
-
-| Column         | Type      | Constraints                             |
-| -------------- | --------- | --------------------------------------- |
-| id             | text      | primary key                             |
-| name           | text      | not null                                |
-| email          | text      | not null, unique                        |
-| email_verified | boolean   | not null, default false                 |
-| image          | text      | nullable                                |
-| created_at     | timestamp | not null, default now                   |
-| updated_at     | timestamp | not null, default now, updates on write |
-
-Relations: one user has many sessions and many accounts.
-
-### session
-
-| Column     | Type      | Constraints                                         |
-| ---------- | --------- | --------------------------------------------------- |
-| id         | text      | primary key                                         |
-| expires_at | timestamp | not null                                            |
-| token      | text      | not null, unique                                    |
-| created_at | timestamp | not null, default now                               |
-| updated_at | timestamp | not null, default now, updates on write             |
-| ip_address | text      | nullable                                            |
-| user_agent | text      | nullable                                            |
-| user_id    | text      | not null, foreign key to user.id, on delete cascade |
-
-Relations: each session belongs to one user; indexed by user_id.
-
-### account
-
-| Column                   | Type      | Constraints                                         |
-| ------------------------ | --------- | --------------------------------------------------- |
-| id                       | text      | primary key                                         |
-| account_id               | text      | not null                                            |
-| provider_id              | text      | not null                                            |
-| user_id                  | text      | not null, foreign key to user.id, on delete cascade |
-| access_token             | text      | nullable                                            |
-| refresh_token            | text      | nullable                                            |
-| id_token                 | text      | nullable                                            |
-| access_token_expires_at  | timestamp | nullable                                            |
-| refresh_token_expires_at | timestamp | nullable                                            |
-| scope                    | text      | nullable                                            |
-| password                 | text      | nullable                                            |
-| created_at               | timestamp | not null, default now                               |
-| updated_at               | timestamp | not null, default now, updates on write             |
-
-Relations: each account belongs to one user; indexed by user_id.
-
-### verification
-
-| Column     | Type      | Constraints                             |
-| ---------- | --------- | --------------------------------------- |
-| id         | text      | primary key                             |
-| identifier | text      | not null                                |
-| value      | text      | not null                                |
-| expires_at | timestamp | not null                                |
-| created_at | timestamp | not null, default now                   |
-| updated_at | timestamp | not null, default now, updates on write |
-
-Relations: verification entries are indexed by identifier.
-
-## Socket.io Events
-
-| Event                 | Direction        | Payload                                               | What it triggers                                              |
-| --------------------- | ---------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
-| connection            | client -> server | Socket.io handshake (cookies read by auth middleware) | Attaches user id to socket and wires handlers                 |
-| queue:enter           | client -> server | number (client sends 1200)                            | Adds player to queue and emits queued; may start a match      |
-| queued                | server -> client | none                                                  | Control booth shows queued state                              |
-| battle:start          | server -> client | none                                                  | Control booth navigates to /battlefield                       |
-| queue:leave           | client -> server | none                                                  | Removes player from queue                                     |
-| typing:preview        | client -> server | object with preview string                            | Forwards preview to opponent as opponent:preview              |
-| opponent:preview      | server -> client | object with preview string                            | Battlefield updates the opponent editor text                  |
-| opponent:reconnected  | server -> client | none                                                  | Emitted to room on reconnect (no client handler yet)          |
-| opponent:reconnecting | server -> client | object with reconnectEndsAt in ms                     | Emitted on disconnect (no client handler yet)                 |
-| opponent:left         | server -> client | none                                                  | Emitted after reconnect window closes (no client handler yet) |
-| disconnect            | client -> server | none                                                  | Starts reconnect timer and room cleanup                       |
-
-## Deployment
-
-Railway should run this repo as two services: the Next.js app at the repo root and the Socket.io server. For the web app service, run:
-
-```
-npm install
-npm run build
-npm run start
+### 2. Live Typing Sync
+```mermaid
+sequenceDiagram
+    participant P1 as Player 1
+    participant S as Socket Server
+    participant P2 as Player 2
+    
+    P1->>S: Emit typing:preview (Code)
+    S->>P2: Broadcast opponent:preview
+    P2->>P2: Update Opponent UI
 ```
 
-For the socket server service, run:
-
-```
-cd socket-server
-bun install
-bun run src/index.ts
-```
-
-Vercel is not a fit for this repo because the Socket.io server is a long-lived process that lives outside the Next.js app; it cannot run as a serverless function and must be deployed as a separate service.
-
-## What Is Left
-
-Matchmaking still hard-codes Elo and leaves a TODO to fetch it from the database.
-
-```
-socket-server/src/socket/socket.ts#L61-L67
+### 3. Code Execution
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant N as Next.js API
+    participant J as Judge0
+    
+    U->>N: Submit Code
+    N->>N: Append Hidden Driver Code
+    N->>J: Execute Test Cases
+    J-->>N: Stdout / Metrics
+    N-->>U: Formatted Output
 ```
 
-Run and Submit are present in the battlefield header but have no handlers, so code execution and Judge0 integration are not wired.
-
-```
-components/battlefield/BattlefieldNavbar.tsx#L20-L39
-```
-
-Mission content has to be loaded from a backend route and not hardcoded
-
-```
-app/battlefield/page.tsx#L7-L16
-```
-
-Socket URLs are hard-coded to localhost in both the client and the socket server, so deployment requires code changes.
-
-```
-lib/socket.ts#L7-L12
-socket-server/src/index.ts#L17-L21
+### 4. Post-Match Elo
+```mermaid
+sequenceDiagram
+    participant S as Socket Server
+    participant N as Next.js API
+    participant DB as Postgres
+    
+    S->>N: Post Match Results
+    N->>N: Calculate Elo Deltas
+    N->>DB: Update Users & Insert Battle
+    N-->>S: New Elos
 ```
 
-Disconnect timer cleanup uses the timer object as the map key, so old entries are not removed correctly.
+---
 
-```
-socket-server/src/socket/socket.ts#L41-L47
-```
-
-The enter page and status panel are empty stubs.
-
-```
-app/enter/page.tsx
-components/battlefield/StatusPanel.tsx
-```
+## Acknowledgements
+- [shadcn/ui](https://ui.shadcn.com/) for the beautiful UI components.
+- [Judge0](https://judge0.com/) for the robust code execution engine.
+- [Better-Auth](https://better-auth.com/) for the seamless authentication experience.
